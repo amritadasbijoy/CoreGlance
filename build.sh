@@ -6,7 +6,7 @@
 set -e
 cd "$(dirname "$0")"
 
-VERSION="${VERSION:-1.0.1}"
+VERSION="${VERSION:-1.0.2}"
 BUNDLE_ID="${BUNDLE_ID:-io.github.amritadasbijoy.coreglance}"
 
 swift build -c release
@@ -44,6 +44,7 @@ install)
     mkdir -p ~/Applications
     rm -rf ~/Applications/CoreGlance.app
     cp -R "$APP" ~/Applications/
+    rm -rf "$APP"   # keep one copy only, so Spotlight and Launchpad do not list the app twice
     echo "Installed to ~/Applications/CoreGlance.app"
     ;;
 zip)

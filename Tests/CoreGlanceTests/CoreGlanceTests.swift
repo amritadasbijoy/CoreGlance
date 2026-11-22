@@ -123,10 +123,20 @@ final class SensorTests: XCTestCase {
     }
 
     func testNetworkCountersNeverGoBackwards() throws {
-        let a = try XCTUnwrap(Sensors.networkBytes())
-        let b = try XCTUnwrap(Sensors.networkBytes())
+        // A machine with no network (some CI runners) has no internet interface: nothing to check.
+        guard let name = Sensors.internetInterface() else { return }
+        let a = try XCTUnwrap(Sensors.networkBytes(interface: name))
+        let b = try XCTUnwrap(Sensors.networkBytes(interface: name))
         XCTAssertGreaterThanOrEqual(b.rx, a.rx)
         XCTAssertGreaterThanOrEqual(b.tx, a.tx)
+    }
+
+    func testUnknownInterfaceGivesNil() {
+        XCTAssertNil(Sensors.networkBytes(interface: "nosuch99"))
+    }
+
+    func testLoopbackIsNeverTheInternetInterface() {
+        XCTAssertNotEqual(Sensors.internetInterface(), "lo0")
     }
 
     func testOptionalSensorsDoNotCrash() {
@@ -135,6 +145,14 @@ final class SensorTests: XCTestCase {
         _ = Sensors.battery()
         let flags = Sensors.performanceCoreFlags()
         XCTAssertTrue(flags.isEmpty || flags.count == ProcessInfo.processInfo.processorCount)
+    }
+
+    func testProductNameIsCleanWhenPresent() {
+        // Not every Mac (or CI runner) reports one, but when it does it must be plain text.
+        if let name = Sensors.productName() {
+            XCTAssertFalse(name.isEmpty)
+            XCTAssertFalse(name.contains("\0"))
+        }
     }
 
     func testProcessesIncludeThisOne() {

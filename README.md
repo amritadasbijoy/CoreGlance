@@ -15,7 +15,7 @@ A lightweight menu bar system monitor for Mac. It shows your Mac's health at a g
 | **CPU** | Total, user, system, idle, load average, a live graph, and per-core bars split into efficiency and performance cores |
 | **Memory** | Used / total, app, wired, compressed, swap, and the macOS memory pressure level (Normal / Warning / Critical) |
 | **GPU** | Utilization with a live graph |
-| **Network** | Download and upload speed, in bytes or bits |
+| **Network** | Download and upload speed of your internet connection, in bytes or bits |
 | **Disk** | Free and total space on the startup disk, with a low-space warning |
 | **Battery** | Charge, health (current vs design capacity), cycle count, time remaining, charger wattage |
 | **Thermal** | The macOS thermal state (Cool / Warm / Hot / Critical) |
@@ -71,6 +71,7 @@ Click the gear icon at the bottom of the popup to open the settings page:
 
 - **No exact temperatures or fan speeds.** On Apple Silicon these are only available through private, undocumented APIs. CoreGlance shows the official macOS thermal state instead.
 - **Top processes lists your own processes only.** System processes such as WindowServer need administrator rights, which CoreGlance never asks for.
+- **Network speed is measured on the interface that carries your internet connection** (Wi-Fi, Ethernet, tethering or a full VPN). Other interfaces are ignored, and it reads zero when offline. Transfers to devices on the same local network use that same interface, so they are included.
 - **Not on the Mac App Store.** The App Store sandbox blocks the process list.
 
 ## Development

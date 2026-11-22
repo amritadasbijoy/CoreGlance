@@ -50,7 +50,8 @@ final class Monitor: ObservableObject {
 
     let bar = BarModel()
     let chip = Sensors.sysctlString("machdep.cpu.brand_string") ?? "Unknown chip"
-    let model = Sensors.sysctlString("hw.model") ?? "Mac"
+    /// Friendly name when the Mac reports one, otherwise Apple's model code (e.g. "Mac14,10").
+    let model = Sensors.productName() ?? Sensors.sysctlString("hw.model") ?? "Mac"
     let osVersion = ProcessInfo.processInfo.operatingSystemVersionString
     /// true = performance core, per logical CPU. Empty if the Mac does not report core types.
     let performanceCores = Sensors.performanceCoreFlags()
@@ -71,6 +72,8 @@ final class Monitor: ObservableObject {
 
     private var prevTicks: [[UInt32]]?
     private var prevNet: (rx: UInt64, tx: UInt64, time: Date)?
+    private(set) var netInterface: String?   // interface carrying the internet connection
+    private var lastInterfaceCheck = Date.distantPast
     private var prevProc: [Int32: UInt64] = [:]
     private var prevProcTime = Date()
     private var nameCache: [Int32: String] = [:]
@@ -158,8 +161,23 @@ final class Monitor: ObservableObject {
     }
 
     private func sampleNetwork() {
-        guard let n = Sensors.networkBytes() else { return }
         let now = Date()
+        // Which interface is the internet connection can change (Wi-Fi to Ethernet, VPN on or off),
+        // so look it up again every few seconds.
+        if now.timeIntervalSince(lastInterfaceCheck) >= 5 {
+            lastInterfaceCheck = now
+            let current = Sensors.internetInterface()
+            if current != netInterface {
+                netInterface = current
+                prevNet = nil   // counters of different interfaces cannot be compared
+            }
+        }
+        guard let name = netInterface, let n = Sensors.networkBytes(interface: name) else {
+            // Offline: show zero instead of the last measured speed.
+            downSpeed = 0; upSpeed = 0; prevNet = nil
+            push(0, &downHistory)
+            return
+        }
         if let p = prevNet {
             let dt = now.timeIntervalSince(p.time)
             downSpeed = Calc.rate(prev: p.rx, cur: n.rx, seconds: dt)

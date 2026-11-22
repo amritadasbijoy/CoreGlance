@@ -2,6 +2,7 @@ import Foundation
 import Darwin
 import IOKit
 import IOKit.ps
+import SystemConfiguration
 
 // Small, stateless readers built on public system APIs.
 // Each returns nil when the data is not available, so the UI can say "n/a"
@@ -220,10 +221,23 @@ enum Sensors {
         return (Int64(total), free)
     }
 
-    // MARK: Network (total bytes on physical en* interfaces: Wi-Fi, Ethernet, tethering)
+    // MARK: Network
 
+    /// The interface that carries the internet connection (the default route), e.g. "en0" for Wi-Fi
+    /// or "utun4" for a full VPN. nil when the Mac is offline.
+    static func internetInterface() -> String? {
+        for key in ["State:/Network/Global/IPv4", "State:/Network/Global/IPv6"] {
+            if let info = SCDynamicStoreCopyValue(nil, key as CFString) as? [String: Any],
+               let name = info["PrimaryInterface"] as? String, !name.isEmpty {
+                return name
+            }
+        }
+        return nil
+    }
+
+    /// Total bytes received and sent on one interface, or nil if it does not exist.
     /// Uses the 64-bit interface counters. The simpler getifaddrs() ones are 32-bit and wrap every 4 GB.
-    static func networkBytes() -> (rx: UInt64, tx: UInt64)? {
+    static func networkBytes(interface: String) -> (rx: UInt64, tx: UInt64)? {
         var mib: [Int32] = [CTL_NET, PF_ROUTE, 0, 0, NET_RT_IFLIST2, 0]
         var len = 0
         guard sysctl(&mib, 6, nil, &len, nil, 0) == 0, len > 0 else { return nil }
@@ -231,6 +245,7 @@ enum Sensors {
         guard sysctl(&mib, 6, &buf, &len, nil, 0) == 0 else { return nil }
 
         var rx: UInt64 = 0, tx: UInt64 = 0
+        var found = false
         var name = [CChar](repeating: 0, count: Int(IF_NAMESIZE))
         buf.withUnsafeBytes { raw in
             var off = 0
@@ -240,16 +255,16 @@ enum Sensors {
                 guard msgLen > 0 else { break }
                 if Int32(hdr.ifm_type) == RTM_IFINFO2, off + MemoryLayout<if_msghdr2>.size <= len {
                     let h2 = raw.loadUnaligned(fromByteOffset: off, as: if_msghdr2.self)
-                    if if_indextoname(UInt32(h2.ifm_index), &name) != nil,
-                       name[0] == CChar(UInt8(ascii: "e")), name[1] == CChar(UInt8(ascii: "n")) {
+                    if if_indextoname(UInt32(h2.ifm_index), &name) != nil, String(cString: name) == interface {
                         rx += h2.ifm_data.ifi_ibytes
                         tx += h2.ifm_data.ifi_obytes
+                        found = true
                     }
                 }
                 off += msgLen
             }
         }
-        return (rx, tx)
+        return found ? (rx, tx) : nil
     }
 
     // MARK: Processes
@@ -313,6 +328,18 @@ enum Sensors {
         var buf = [CChar](repeating: 0, count: size)
         guard sysctlbyname(name, &buf, &size, nil, 0) == 0 else { return nil }
         return String(cString: buf)
+    }
+
+    /// The Mac's everyday name, e.g. "MacBook Pro (16-inch, 2023)". nil if the Mac does not report one.
+    static func productName() -> String? {
+        let entry = IORegistryEntryFromPath(kIOMainPortDefault, "IODeviceTree:/product")
+        guard entry != 0 else { return nil }
+        defer { IOObjectRelease(entry) }
+        guard let data = IORegistryEntryCreateCFProperty(entry, "product-name" as CFString, kCFAllocatorDefault, 0)?
+            .takeRetainedValue() as? Data else { return nil }
+        // The value is a C string with a trailing zero byte.
+        let name = String(decoding: data.prefix { $0 != 0 }, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? nil : name
     }
 
     static func loadAverage() -> [Double] {

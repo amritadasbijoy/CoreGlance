@@ -105,9 +105,10 @@ struct PopupView: View {
                 Text(monitor.chip).font(.system(size: 15, weight: .medium))
                 Text("\(monitor.model) · up \(Fmt.uptime(ProcessInfo.processInfo.systemUptime))")
                     .font(Theme.label).foregroundStyle(.secondary)
+                    .lineLimit(1).minimumScaleFactor(0.8)
             }
             Spacer()
-            ThermalStatus(state: monitor.thermal)
+            ThermalStatus(state: monitor.thermal).fixedSize()
         }
     }
 
@@ -209,7 +210,14 @@ struct PopupView: View {
 
     private var networkCard: some View {
         Card(fillHeight: true) {
-            Text("Network").font(Theme.title)
+            HStack {
+                Text("Network").font(Theme.title)
+                Spacer()
+                Text(monitor.netInterface == nil ? "Offline" : "Internet")
+                    .font(Theme.label).foregroundStyle(.secondary)
+                    .help(monitor.netInterface.map { "Measured on \($0), the interface that carries your internet connection" }
+                          ?? "No internet connection")
+            }
             HStack(spacing: 4) {
                 Image(systemName: "arrow.down").font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
                     .frame(width: 12)
