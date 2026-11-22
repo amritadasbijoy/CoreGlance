@@ -60,7 +60,19 @@ enum DebugSnapshot {
             NSApp.windows.lazy.compactMap { button(in: $0.contentView) }.first?.performClick(nil)
             try? await Task.sleep(for: .seconds(1.5))
             for window in NSApp.windows where !window.className.contains("StatusBar") {
-                NSLog("CoreGlance debug: popup appearance = %@", window.effectiveAppearance.name.rawValue)
+                NSLog("CoreGlance debug: popup appearance = %@, window height = %.0f",
+                      window.effectiveAppearance.name.rawValue, window.frame.height)
+            }
+            // COREGLANCE_SNAPSHOT_TOGGLE also switches between the main and settings pages
+            // while the popup is open, to check that the window resizes.
+            if ProcessInfo.processInfo.environment["COREGLANCE_SNAPSHOT_TOGGLE"] != nil {
+                let key = "showSettings"
+                UserDefaults.standard.set(!UserDefaults.standard.bool(forKey: key), forKey: key)
+                try? await Task.sleep(for: .seconds(2.5))
+                for window in NSApp.windows where !window.className.contains("StatusBar") {
+                    NSLog("CoreGlance debug: after toggle window height = %.0f visible = %d", window.frame.height, window.isVisible ? 1 : 0)
+                }
+                UserDefaults.standard.set(!UserDefaults.standard.bool(forKey: key), forKey: key)
             }
         }
         NSApp.terminate(nil)

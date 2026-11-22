@@ -78,6 +78,14 @@ struct PopupView: View {
         }
         .padding(16)
         .frame(width: 340)
+        // macOS does not shrink a menu bar popup when its content gets shorter (for example
+        // going from the main page to settings), which leaves blank bands. Measure the
+        // content and size the window to it.
+        .background(GeometryReader { geo in
+            Color.clear
+                .onAppear { PopupWindow.fit(height: geo.size.height) }
+                .onChange(of: geo.size.height) { _, height in PopupWindow.fit(height: height) }
+        })
         // The popup is this app's only window. While it is closed the monitor skips
         // the process scan and does not refresh these views at all.
         .onAppear { monitor.popupOpen = true; PopupAppearance.apply(appearance) }
@@ -275,14 +283,8 @@ struct PopupView: View {
             HStack {
                 Text("Top processes").font(Theme.title)
                 Spacer()
-                Picker("Sort by", selection: $procSortByMemory) {
-                    Text("CPU").tag(false)
-                    Text("Memory").tag(true)
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .controlSize(.small)
-                .frame(width: 120)
+                Segmented(options: [(false, "CPU"), (true, "Memory")], selection: $procSortByMemory)
+                    .frame(width: 120)
             }
             if rows.isEmpty {
                 Text("Measuring").font(Theme.label).foregroundStyle(.secondary)
@@ -335,6 +337,24 @@ struct PopupView: View {
     }
 }
 
+@MainActor
+enum PopupWindow {
+    /// Resizes the popup window to the content height, keeping its top edge under the menu bar.
+    static func fit(height: CGFloat) {
+        guard height > 50 else { return }
+        // Run after the current layout pass, when the window exists and has its position.
+        DispatchQueue.main.async {
+            for window in NSApp.windows where !window.className.contains("StatusBar") {
+                var frame = window.frame
+                guard abs(frame.height - height) > 0.5 else { continue }
+                frame.origin.y += frame.height - height
+                frame.size.height = height
+                window.setFrame(frame, display: true)
+            }
+        }
+    }
+}
+
 /// Applies the Light / Dark / System choice to the popup window itself.
 /// SwiftUI's `preferredColorScheme` has no effect inside a menu bar popup, and changing
 /// the whole app's appearance would also recolour the menu bar item.
@@ -370,36 +390,40 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            SectionLabel("General")
             Card {
                 SettingRow("Refresh every") {
-                    Picker("Refresh every", selection: $interval) {
-                        Text("1 s").tag(1.0); Text("2 s").tag(2.0); Text("5 s").tag(5.0); Text("10 s").tag(10.0)
-                    }
-                    .pickerStyle(.segmented).labelsHidden().frame(width: 180)
+                    Segmented(options: [(1.0, "1 s"), (2.0, "2 s"), (5.0, "5 s"), (10.0, "10 s")], selection: $interval)
+                        .frame(width: 176)
                 }
+                Divider().opacity(0.5)
                 SettingRow("Appearance") {
-                    Picker("Appearance", selection: $appearance) {
-                        Text("System").tag("system"); Text("Light").tag("light"); Text("Dark").tag("dark")
-                    }
-                    .pickerStyle(.segmented).labelsHidden().frame(width: 180)
+                    Segmented(options: [("system", "Auto"), ("light", "Light"), ("dark", "Dark")], selection: $appearance)
+                        .frame(width: 176)
                 }
             }
+
+            SectionLabel("Menu bar shows")
             Card {
-                Text("Menu bar").font(Theme.title)
-                HStack(spacing: 12) {
-                    Toggle("CPU", isOn: $showCPU)
-                    Toggle("Memory", isOn: $showRAM)
-                    Toggle("GPU", isOn: $showGPU)
-                    Toggle("Network", isOn: $showNet)
+                HStack(spacing: 4) {
+                    Chip("CPU", isOn: $showCPU)
+                    Chip("Memory", isOn: $showRAM)
+                    Chip("GPU", isOn: $showGPU)
+                    Chip("Network", isOn: $showNet)
                 }
-                .toggleStyle(.checkbox)
+                Divider().opacity(0.5)
                 SwitchRow("Compact two-line layout", isOn: $compactBar)
             }
+
+            SectionLabel("Options")
             Card {
                 SwitchRow("Top processes", isOn: $showProcesses)
+                Divider().opacity(0.5)
                 SwitchRow("Network speed in bits", isOn: $speedBits)
+                Divider().opacity(0.5)
                 SwitchRow("Alerts for memory, disk and heat", isOn: $alerts)
                     .onChange(of: alerts) { _, on in if on { Notifier.requestPermission() } }
+                Divider().opacity(0.5)
                 SwitchRow("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, on in
                         if on != LaunchAtLogin.isOn { LaunchAtLogin.set(on) }
@@ -407,7 +431,17 @@ struct SettingsView: View {
             }
         }
         .font(.system(size: 12))
+        .tint(Theme.accent)   // switches use the app's green, not the system blue
         .onAppear { launchAtLogin = LaunchAtLogin.isOn }
+    }
+}
+
+struct SectionLabel: View {
+    let text: String
+    init(_ text: String) { self.text = text }
+    var body: some View {
+        Text(text).font(Theme.label).foregroundStyle(.secondary)
+            .padding(.leading, 4).padding(.top, 4)
     }
 }
 
@@ -436,6 +470,58 @@ struct SwitchRow: View {
         .toggleStyle(.switch)
         .controlSize(.mini)
         .frame(minHeight: 24)
+    }
+}
+
+/// A quiet segmented control drawn to match the cards (the system one looks heavy in a popup).
+struct Segmented<Value: Hashable>: View {
+    let options: [(value: Value, title: String)]
+    @Binding var selection: Value
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(options.indices, id: \.self) { i in
+                let selected = options[i].value == selection
+                Button { selection = options[i].value } label: {
+                    Text(options[i].title)
+                        .font(.system(size: 11, weight: selected ? .medium : .regular).monospacedDigit())
+                        .foregroundStyle(selected ? .primary : .secondary)
+                        .frame(maxWidth: .infinity, minHeight: 20)
+                        .background(selected ? Color.primary.opacity(0.16) : .clear, in: RoundedRectangle(cornerRadius: 6))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }
+        .padding(2)
+        .background(Theme.track, in: RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+/// An on/off choice shown as a small tag.
+struct Chip: View {
+    let title: String
+    @Binding var isOn: Bool
+    init(_ title: String, isOn: Binding<Bool>) { self.title = title; self._isOn = isOn }
+
+    var body: some View {
+        Button { isOn.toggle() } label: {
+            HStack(spacing: 4) {
+                Image(systemName: isOn ? "checkmark" : "plus")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(isOn ? Theme.accent : Color.secondary)
+                Text(title).font(.system(size: 11, weight: isOn ? .medium : .regular))
+                    .foregroundStyle(isOn ? .primary : .secondary)
+                    .lineLimit(1).fixedSize()
+            }
+            .frame(maxWidth: .infinity, minHeight: 24)
+            .background(isOn ? Color.primary.opacity(0.12) : .clear, in: RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(isOn ? Color.clear : Theme.hairline))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 }
 
