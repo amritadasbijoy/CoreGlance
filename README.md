@@ -1,0 +1,105 @@
+# MacPulse
+
+A small, native menu bar app that shows your Mac's health at a glance. Built for Apple Silicon Macs (M1 and later) with Swift and SwiftUI.
+
+- **Light:** about 1% of one CPU core and about 20 MB of memory.
+- **Private:** no network requests, no analytics, no account. Nothing leaves your Mac.
+- **Small:** about 1,200 lines of code, no third-party dependencies.
+
+<!-- Add a screenshot here: docs/screenshot.png -->
+
+## What it shows
+
+| | |
+|---|---|
+| **CPU** | Total, user, system, idle, load average, a live graph, and per-core bars split into efficiency and performance cores |
+| **Memory** | Used / total, app, wired, compressed, swap, and the macOS memory pressure level (Normal / Warning / Critical) |
+| **GPU** | Utilization with a live graph |
+| **Network** | Download and upload speed, in bytes or bits |
+| **Disk** | Free and total space on the startup disk, with a low-space warning |
+| **Battery** | Charge, health (current vs design capacity), cycle count, time remaining, charger wattage |
+| **Thermal** | The macOS thermal state (Cool / Warm / Hot / Critical) |
+| **Top processes** | Top 6 by CPU or memory |
+
+The menu bar item can show any mix of CPU, RAM, GPU and network speed, either on one line or in a compact two-line layout.
+
+Optional alerts notify you when memory pressure turns critical, the disk is nearly full, or the Mac is overheating.
+
+## Install
+
+**Requirements:** an Apple Silicon Mac with macOS 14 or later.
+
+### Download
+
+1. Download `MacPulse-<version>.zip` from the [Releases](../../releases) page and unzip it.
+2. Move `MacPulse.app` to your Applications folder and open it.
+3. The app is not notarized by Apple, so macOS blocks it the first time. Open **System Settings → Privacy & Security**, scroll down and click **Open Anyway**.
+
+### Build from source
+
+You only need the Xcode Command Line Tools (`xcode-select --install`).
+
+```bash
+git clone https://github.com/amritadasbijoy/MacPulse.git
+cd MacPulse
+./build.sh install
+```
+
+This builds the app and copies it to `~/Applications/MacPulse.app`.
+
+## Settings
+
+Click the gear icon at the bottom of the popup to open the settings page:
+
+- Refresh interval: 1, 2, 5 or 10 seconds
+- Appearance: follow the system, or always light or dark
+- What the menu bar shows, and the compact two-line style
+- Top processes on or off
+- Network speed in bytes or bits
+- Alerts
+- Launch at login
+
+## How it stays light
+
+- One timer drives everything, with tolerance so macOS can group wakeups.
+- Battery and disk are read every 30 seconds, not on every tick.
+- The process list is only read while the popup is open.
+- The popup is not redrawn at all while it is closed.
+- The menu bar item is redrawn only when its text changes.
+
+## Limits
+
+- **No exact temperatures or fan speeds.** On Apple Silicon these are only available through private, undocumented APIs. MacPulse shows the official macOS thermal state instead.
+- **Top processes lists your own processes only.** System processes such as WindowServer need administrator rights, which MacPulse never asks for.
+- **Not on the Mac App Store.** The App Store sandbox blocks the process list.
+
+## Development
+
+```bash
+swift build          # compile
+swift test           # run the tests (needs Xcode, not just the Command Line Tools)
+./build.sh           # build build/MacPulse.app
+./build.sh zip       # also create a zip for a release
+swift scripts/make-icon.swift   # regenerate the app icon
+
+# Draw the popup to a PNG without clicking the menu bar (handy for checking layout changes):
+MACPULSE_SNAPSHOT=/tmp/popup.png build/MacPulse.app/Contents/MacOS/MacPulse
+```
+
+| File | Purpose |
+|---|---|
+| `Sources/MacPulse/Sensors.swift` | Reads the system (Mach, IOKit, sysctl) |
+| `Sources/MacPulse/Core.swift` | Pure calculations and formatting, covered by tests |
+| `Sources/MacPulse/Monitor.swift` | The sampling timer, menu bar image and alerts |
+| `Sources/MacPulse/Views.swift` | The popup interface |
+| `Sources/MacPulse/App.swift` | App entry point and menu bar item |
+
+To publish a release, push a tag such as `v1.0.0`. The GitHub Action builds the app and attaches the zip to a new release.
+
+## Author
+
+Developed by **Amrita Chandra Das** · [amrita.bd](https://amrita.bd) · [techistbd.com](https://techistbd.com)
+
+## License
+
+[MIT](LICENSE)
