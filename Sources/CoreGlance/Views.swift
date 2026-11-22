@@ -317,7 +317,7 @@ struct PopupView: View {
             .buttonStyle(.borderless)
             .help("Settings")
             Spacer()
-            Text("MacPulse \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev")")
+            Text("CoreGlance \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev")")
                 .font(Theme.label).foregroundStyle(.tertiary)
             Spacer()
             Button("Quit") { NSApplication.shared.terminate(nil) }

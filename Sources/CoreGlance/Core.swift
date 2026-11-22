@@ -9,7 +9,7 @@ enum AppInfo {
         ("amrita.bd", "https://amrita.bd"),
         ("techistbd.com", "https://techistbd.com"),
     ]
-    static let sourceURL = "https://github.com/amritadasbijoy/MacPulse"
+    static let sourceURL = "https://github.com/amritadasbijoy/CoreGlance"
 }
 
 enum Fmt {

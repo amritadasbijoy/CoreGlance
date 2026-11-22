@@ -2,10 +2,10 @@
 import PackageDescription
 
 let package = Package(
-    name: "MacPulse",
+    name: "CoreGlance",
     platforms: [.macOS(.v14)],
     targets: [
-        .executableTarget(name: "MacPulse", path: "Sources/MacPulse"),
-        .testTarget(name: "MacPulseTests", dependencies: ["MacPulse"], path: "Tests/MacPulseTests"),
+        .executableTarget(name: "CoreGlance", path: "Sources/CoreGlance"),
+        .testTarget(name: "CoreGlanceTests", dependencies: ["CoreGlance"], path: "Tests/CoreGlanceTests"),
     ]
 )

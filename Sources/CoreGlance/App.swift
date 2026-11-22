@@ -2,7 +2,7 @@ import SwiftUI
 import ServiceManagement
 
 @main
-struct MacPulseApp: App {
+struct CoreGlanceApp: App {
     @StateObject private var monitor = Monitor()
 
     var body: some Scene {
@@ -23,31 +23,31 @@ struct MenuBarLabel: View {
         if let image = bar.image {
             Image(nsImage: image).accessibilityLabel(bar.text)
         } else if bar.text.isEmpty {
-            Image(systemName: "waveform.path.ecg").accessibilityLabel("MacPulse")
+            Image(systemName: "waveform.path.ecg").accessibilityLabel("CoreGlance")
         } else {
             Text(bar.text).monospacedDigit()
         }
     }
 }
 
-/// Development aid: `MACPULSE_SNAPSHOT=/path/out.png` draws the popup to a PNG a few seconds
+/// Development aid: `COREGLANCE_SNAPSHOT=/path/out.png` draws the popup to a PNG a few seconds
 /// after launch, so the interface can be checked without clicking the menu bar.
 @MainActor
 enum DebugSnapshot {
     static func runIfRequested(_ monitor: Monitor) async {
-        guard let path = ProcessInfo.processInfo.environment["MACPULSE_SNAPSHOT"] else { return }
+        guard let path = ProcessInfo.processInfo.environment["COREGLANCE_SNAPSHOT"] else { return }
         monitor.popupOpen = true
         try? await Task.sleep(for: .seconds(6))
         let view = PopupView(monitor: monitor)
             .background(Color(nsColor: .windowBackgroundColor))
-            .environment(\.colorScheme, ProcessInfo.processInfo.environment["MACPULSE_SNAPSHOT_LIGHT"] != nil ? .light : .dark)
+            .environment(\.colorScheme, ProcessInfo.processInfo.environment["COREGLANCE_SNAPSHOT_LIGHT"] != nil ? .light : .dark)
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2
         if let tiff = renderer.nsImage?.tiffRepresentation,
            let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
             try? png.write(to: URL(fileURLWithPath: path))
         }
-        if ProcessInfo.processInfo.environment["MACPULSE_SNAPSHOT_OPEN"] != nil {
+        if ProcessInfo.processInfo.environment["COREGLANCE_SNAPSHOT_OPEN"] != nil {
             // Also open the real popup and report which appearance its window ended up with.
             func button(in view: NSView?) -> NSStatusBarButton? {
                 guard let view else { return nil }
@@ -58,7 +58,7 @@ enum DebugSnapshot {
             NSApp.windows.lazy.compactMap { button(in: $0.contentView) }.first?.performClick(nil)
             try? await Task.sleep(for: .seconds(1.5))
             for window in NSApp.windows where !window.className.contains("StatusBar") {
-                NSLog("MacPulse debug: popup appearance = %@", window.effectiveAppearance.name.rawValue)
+                NSLog("CoreGlance debug: popup appearance = %@", window.effectiveAppearance.name.rawValue)
             }
         }
         NSApp.terminate(nil)
@@ -71,7 +71,7 @@ enum LaunchAtLogin {
         do {
             if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
         } catch {
-            NSLog("MacPulse: launch at login change failed: \(error.localizedDescription)")
+            NSLog("CoreGlance: launch at login change failed: \(error.localizedDescription)")
         }
     }
 }

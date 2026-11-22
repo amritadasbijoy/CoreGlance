@@ -1,4 +1,4 @@
-// Draws the MacPulse app icon and writes Resources/AppIcon.icns.
+// Draws the CoreGlance app icon and writes Resources/AppIcon.icns.
 // Run from the project root:  swift scripts/make-icon.swift
 import AppKit
 
@@ -39,7 +39,7 @@ func draw(size: CGFloat) -> Data {
 }
 
 let fm = FileManager.default
-let iconset = fm.temporaryDirectory.appendingPathComponent("MacPulse.iconset")
+let iconset = fm.temporaryDirectory.appendingPathComponent("CoreGlance.iconset")
 try? fm.removeItem(at: iconset)
 try fm.createDirectory(at: iconset, withIntermediateDirectories: true)
 for base in [16, 32, 128, 256, 512] {

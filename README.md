@@ -1,6 +1,6 @@
-# MacPulse
+# CoreGlance
 
-A small, native menu bar app that shows your Mac's health at a glance. Built for Apple Silicon Macs (M1 and later) with Swift and SwiftUI.
+A lightweight menu bar system monitor for Mac. It shows your Mac's health at a glance, built for Apple Silicon (M1 and later) with Swift and SwiftUI.
 
 - **Light:** about 1% of one CPU core and about 20 MB of memory.
 - **Private:** no network requests, no analytics, no account. Nothing leaves your Mac.
@@ -31,8 +31,8 @@ Optional alerts notify you when memory pressure turns critical, the disk is near
 
 ### Download
 
-1. Download `MacPulse-<version>.zip` from the [Releases](../../releases) page and unzip it.
-2. Move `MacPulse.app` to your Applications folder and open it.
+1. Download `CoreGlance-<version>.zip` from the [Releases](../../releases) page and unzip it.
+2. Move `CoreGlance.app` to your Applications folder and open it.
 3. The app is not notarized by Apple, so macOS blocks it the first time. Open **System Settings → Privacy & Security**, scroll down and click **Open Anyway**.
 
 ### Build from source
@@ -40,12 +40,12 @@ Optional alerts notify you when memory pressure turns critical, the disk is near
 You only need the Xcode Command Line Tools (`xcode-select --install`).
 
 ```bash
-git clone https://github.com/amritadasbijoy/MacPulse.git
-cd MacPulse
+git clone https://github.com/amritadasbijoy/CoreGlance.git
+cd CoreGlance
 ./build.sh install
 ```
 
-This builds the app and copies it to `~/Applications/MacPulse.app`.
+This builds the app and copies it to `~/Applications/CoreGlance.app`.
 
 ## Settings
 
@@ -69,8 +69,8 @@ Click the gear icon at the bottom of the popup to open the settings page:
 
 ## Limits
 
-- **No exact temperatures or fan speeds.** On Apple Silicon these are only available through private, undocumented APIs. MacPulse shows the official macOS thermal state instead.
-- **Top processes lists your own processes only.** System processes such as WindowServer need administrator rights, which MacPulse never asks for.
+- **No exact temperatures or fan speeds.** On Apple Silicon these are only available through private, undocumented APIs. CoreGlance shows the official macOS thermal state instead.
+- **Top processes lists your own processes only.** System processes such as WindowServer need administrator rights, which CoreGlance never asks for.
 - **Not on the Mac App Store.** The App Store sandbox blocks the process list.
 
 ## Development
@@ -78,21 +78,21 @@ Click the gear icon at the bottom of the popup to open the settings page:
 ```bash
 swift build          # compile
 swift test           # run the tests (needs Xcode, not just the Command Line Tools)
-./build.sh           # build build/MacPulse.app
+./build.sh           # build build/CoreGlance.app
 ./build.sh zip       # also create a zip for a release
 swift scripts/make-icon.swift   # regenerate the app icon
 
 # Draw the popup to a PNG without clicking the menu bar (handy for checking layout changes):
-MACPULSE_SNAPSHOT=/tmp/popup.png build/MacPulse.app/Contents/MacOS/MacPulse
+COREGLANCE_SNAPSHOT=/tmp/popup.png build/CoreGlance.app/Contents/MacOS/CoreGlance
 ```
 
 | File | Purpose |
 |---|---|
-| `Sources/MacPulse/Sensors.swift` | Reads the system (Mach, IOKit, sysctl) |
-| `Sources/MacPulse/Core.swift` | Pure calculations and formatting, covered by tests |
-| `Sources/MacPulse/Monitor.swift` | The sampling timer, menu bar image and alerts |
-| `Sources/MacPulse/Views.swift` | The popup interface |
-| `Sources/MacPulse/App.swift` | App entry point and menu bar item |
+| `Sources/CoreGlance/Sensors.swift` | Reads the system (Mach, IOKit, sysctl) |
+| `Sources/CoreGlance/Core.swift` | Pure calculations and formatting, covered by tests |
+| `Sources/CoreGlance/Monitor.swift` | The sampling timer, menu bar image and alerts |
+| `Sources/CoreGlance/Views.swift` | The popup interface |
+| `Sources/CoreGlance/App.swift` | App entry point and menu bar item |
 
 To publish a release, push a tag such as `v1.0.0`. The GitHub Action builds the app and attaches the zip to a new release.
 
