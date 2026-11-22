@@ -29,6 +29,16 @@ Optional alerts notify you when memory pressure turns critical, the disk is near
 
 **Requirements:** an Apple Silicon Mac with macOS 14 or later.
 
+### Homebrew
+
+```bash
+brew install --cask amritadasbijoy/tap/coreglance
+```
+
+Then open CoreGlance from your Applications folder. It is not notarized by Apple, so macOS blocks it the first time: open **System Settings → Privacy & Security**, scroll down and click **Open Anyway**.
+
+To update later, run `brew upgrade --cask coreglance`.
+
 ### Download
 
 1. Download `CoreGlance-<version>.zip` from the [Releases](../../releases) page and unzip it.
@@ -95,7 +105,7 @@ COREGLANCE_SNAPSHOT=/tmp/popup.png build/CoreGlance.app/Contents/MacOS/CoreGlanc
 | `Sources/CoreGlance/Views.swift` | The popup interface |
 | `Sources/CoreGlance/App.swift` | App entry point and menu bar item |
 
-To publish a release, push a tag such as `v1.0.0`. The GitHub Action builds the app and attaches the zip to a new release.
+To publish a release, push a tag such as `v1.0.0`. The GitHub Action builds the app and attaches the zip to a new release. Then update the Homebrew cask in [homebrew-tap](https://github.com/amritadasbijoy/homebrew-tap): `scripts/make-cask.sh <version>` prints the new `Casks/coreglance.rb`.
 
 ## Author
 
