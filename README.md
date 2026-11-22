@@ -105,7 +105,7 @@ COREGLANCE_SNAPSHOT=/tmp/popup.png build/CoreGlance.app/Contents/MacOS/CoreGlanc
 | `Sources/CoreGlance/Views.swift` | The popup interface |
 | `Sources/CoreGlance/App.swift` | App entry point and menu bar item |
 
-To publish a release, push a tag such as `v1.0.0`. The GitHub Action builds the app and attaches the zip to a new release. Then update the Homebrew cask in [homebrew-tap](https://github.com/amritadasbijoy/homebrew-tap): `scripts/make-cask.sh <version>` prints the new `Casks/coreglance.rb`.
+To publish a release, push a tag such as `v1.0.0`. The GitHub Action builds the app and attaches the zip to a new release. It then updates the Homebrew cask in [homebrew-tap](https://github.com/amritadasbijoy/homebrew-tap) by itself. If that step ever fails, run the "Update Homebrew cask" workflow by hand from the Actions tab.
 
 ## Author
 

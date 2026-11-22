@@ -29,3 +29,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" build/CoreGlance-*.zip --title "CoreGlance $GITHUB_REF_NAME" --generate-notes
+
+      - name: Update Homebrew cask
+        if: github.ref_type == 'tag'
+        env:
+          TAP_DEPLOY_KEY: ${{ secrets.TAP_DEPLOY_KEY }}
+        run: scripts/push-cask.sh "${GITHUB_REF_NAME#v}" build/CoreGlance-*.zip

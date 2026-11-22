@@ -1,11 +1,17 @@
-#!/bin/zsh
+#!/bin/bash
 # Prints the Homebrew cask for a released version.
-#   scripts/make-cask.sh 1.0.2 > /path/to/homebrew-tap/Casks/coreglance.rb
-# The version must already be published on the GitHub Releases page.
-set -e
-VERSION="${1:?usage: make-cask.sh <version>}"
+#   scripts/make-cask.sh 1.0.2                 # downloads the release zip to get its checksum
+#   scripts/make-cask.sh 1.0.2 build/CoreGlance-1.0.2.zip   # uses a local zip instead
+set -euo pipefail
+VERSION="${1:?usage: make-cask.sh <version> [zip file]}"
+ZIP="${2:-}"
 URL="https://github.com/amritadasbijoy/CoreGlance/releases/download/v${VERSION}/CoreGlance-${VERSION}.zip"
-SHA=$(curl -fsSL "$URL" | shasum -a 256 | cut -d' ' -f1)
+
+if [ -n "$ZIP" ]; then
+    SHA=$(shasum -a 256 "$ZIP" | cut -d' ' -f1)
+else
+    SHA=$(curl -fsSL "$URL" | shasum -a 256 | cut -d' ' -f1)
+fi
 
 cat <<CASK
 cask "coreglance" do
