@@ -6,7 +6,7 @@ A lightweight menu bar system monitor for Mac. It shows your Mac's health at a g
 - **Private:** no network requests, no analytics, no account. Nothing leaves your Mac.
 - **Small:** about 1,200 lines of code, no third-party dependencies.
 
-<!-- Add a screenshot here: docs/screenshot.png -->
+<p align="center"><img src="docs/screenshot.png" width="337" alt="The CoreGlance popup showing CPU, memory, GPU, network, disk and battery"></p>
 
 ## What it shows
 

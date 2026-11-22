@@ -37,7 +37,9 @@ enum DebugSnapshot {
     static func runIfRequested(_ monitor: Monitor) async {
         guard let path = ProcessInfo.processInfo.environment["COREGLANCE_SNAPSHOT"] else { return }
         monitor.popupOpen = true
-        try? await Task.sleep(for: .seconds(6))
+        // COREGLANCE_SNAPSHOT_WAIT=<seconds> lets the graphs fill up first (default 6).
+        let wait = Double(ProcessInfo.processInfo.environment["COREGLANCE_SNAPSHOT_WAIT"] ?? "") ?? 6
+        try? await Task.sleep(for: .seconds(wait))
         let view = PopupView(monitor: monitor)
             .background(Color(nsColor: .windowBackgroundColor))
             .environment(\.colorScheme, ProcessInfo.processInfo.environment["COREGLANCE_SNAPSHOT_LIGHT"] != nil ? .light : .dark)
