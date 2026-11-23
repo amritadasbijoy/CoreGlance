@@ -401,14 +401,20 @@ struct PopupView: View {
 
 @MainActor
 enum PopupWindow {
-    /// Resizes the popup window to the content height, keeping its top edge under the menu bar.
+    /// Shrinks the popup window to the content height, keeping its top edge under the menu bar.
+    ///
+    /// macOS sizes the window itself when it opens and when the content grows, and makes it a
+    /// few points shorter than the measured content. Forcing our own height in those cases
+    /// leaves the window larger than its background, which shows as square corners and a gap
+    /// under the menu bar. So this only steps in for the one case macOS skips: a clear shrink,
+    /// such as going from the main page to a shorter page.
     static func fit(height: CGFloat) {
         guard height > 50 else { return }
         // Run after the current layout pass, when the window exists and has its position.
         DispatchQueue.main.async {
             for window in NSApp.windows where !window.className.contains("StatusBar") {
                 var frame = window.frame
-                guard abs(frame.height - height) > 0.5 else { continue }
+                guard frame.height - height > 8 else { continue }
                 frame.origin.y += frame.height - height
                 frame.size.height = height
                 window.setFrame(frame, display: true)
