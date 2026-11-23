@@ -42,8 +42,8 @@ To update later, run `brew upgrade --cask coreglance`.
 
 ### Download
 
-1. Download `CoreGlance-<version>.zip` from the [Releases](../../releases) page and unzip it.
-2. Move `CoreGlance.app` to your Applications folder and open it.
+1. Download `CoreGlance-<version>.dmg` from the [Releases](../../releases) page and open it.
+2. Drag `CoreGlance` onto the Applications folder in the window that appears, then open it from Applications.
 3. The app is not notarized by Apple, so macOS blocks it the first time. Open **System Settings → Privacy & Security**, scroll down and click **Open Anyway**.
 
 ### Build from source
@@ -92,7 +92,7 @@ Click the gear icon at the bottom of the popup to open the settings page:
 swift build          # compile
 swift test           # run the tests (needs Xcode, not just the Command Line Tools)
 ./build.sh           # build build/CoreGlance.app
-./build.sh zip       # also create a zip for a release
+./build.sh release   # also create the dmg and zip for a release
 swift scripts/make-icon.swift   # regenerate the app icon
 
 # Draw the popup to a PNG without clicking the menu bar (handy for checking layout changes):
@@ -108,7 +108,7 @@ COREGLANCE_SNAPSHOT=/tmp/popup.png build/CoreGlance.app/Contents/MacOS/CoreGlanc
 | `Sources/CoreGlance/Views.swift` | The popup interface |
 | `Sources/CoreGlance/App.swift` | App entry point and menu bar item |
 
-To publish a release, push a tag such as `v1.0.0`. The GitHub Action builds the app and attaches the zip to a new release. It then updates the Homebrew cask in [homebrew-tap](https://github.com/amritadasbijoy/homebrew-tap) by itself. If that step ever fails, run the "Update Homebrew cask" workflow by hand from the Actions tab.
+To publish a release, push a tag such as `v1.0.0`. The GitHub Action builds the app and attaches the dmg and zip to a new release. It then updates the Homebrew cask in [homebrew-tap](https://github.com/amritadasbijoy/homebrew-tap) by itself. If that step ever fails, run the "Update Homebrew cask" workflow by hand from the Actions tab.
 
 ## Author
 

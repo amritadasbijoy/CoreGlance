@@ -2,7 +2,9 @@
 # Builds CoreGlance.app in ./build.
 #   ./build.sh            build only
 #   ./build.sh install    build and copy to ~/Applications
-#   ./build.sh zip        build and create build/CoreGlance-<version>.zip for a release
+#   ./build.sh zip        build and create build/CoreGlance-<version>.zip
+#   ./build.sh dmg        build and create build/CoreGlance-<version>.dmg
+#   ./build.sh release    build and create both (the zip is what Homebrew installs)
 set -e
 cd "$(dirname "$0")"
 
@@ -39,6 +41,23 @@ PLIST
 codesign --force --sign - "$APP"
 echo "Built $APP ($VERSION)"
 
+make_zip() {
+    ditto -c -k --keepParent "$APP" "build/CoreGlance-$VERSION.zip"
+    echo "Created build/CoreGlance-$VERSION.zip"
+}
+
+# A disk image with the app next to a shortcut to Applications, so people drag it across.
+make_dmg() {
+    local stage=build/dmg
+    rm -rf "$stage" "build/CoreGlance-$VERSION.dmg"
+    mkdir -p "$stage"
+    cp -R "$APP" "$stage/"
+    ln -s /Applications "$stage/Applications"
+    hdiutil create -quiet -volname CoreGlance -srcfolder "$stage" -format UDZO "build/CoreGlance-$VERSION.dmg"
+    rm -rf "$stage"
+    echo "Created build/CoreGlance-$VERSION.dmg"
+}
+
 case "$1" in
 install)
     mkdir -p ~/Applications
@@ -47,8 +66,7 @@ install)
     rm -rf "$APP"   # keep one copy only, so Spotlight and Launchpad do not list the app twice
     echo "Installed to ~/Applications/CoreGlance.app"
     ;;
-zip)
-    ditto -c -k --keepParent "$APP" "build/CoreGlance-$VERSION.zip"
-    echo "Created build/CoreGlance-$VERSION.zip"
-    ;;
+zip) make_zip ;;
+dmg) make_dmg ;;
+release) make_zip; make_dmg ;;
 esac
