@@ -20,7 +20,7 @@ final class Monitor: ObservableObject {
     /// Default values for every setting, shared with the @AppStorage properties in the views.
     static let defaults: [String: Any] = [
         "interval": 2.0, "showCPU": true, "showRAM": true, "showGPU": false, "showNet": false,
-        "showTemp": false,
+        "showTemp": false, "checkUpdates": true,
         "compactBar": true, "showProcesses": true, "showSensors": false, "speedBits": false, "alerts": false, "appearance": "system",
     ]
 
@@ -42,6 +42,7 @@ final class Monitor: ObservableObject {
     private(set) var temperature: Double?   // hottest chip sensor, °C (optional feature)
     private(set) var fans: [Thermals.Fan] = []
     private(set) var usage = UsageLog()     // internet data used, per hour and per day
+    private(set) var updateVersion: String?   // a newer release, when the daily check found one
     var confirmingUsageReset = false { didSet { objectWillChange.send() } }
 
     struct ProcRow: Identifiable {
@@ -175,6 +176,7 @@ final class Monitor: ObservableObject {
             battery = Sensors.battery()
             disk = Sensors.disk()
             checkAlerts()
+            checkForUpdate()
         }
 
         updateBar()
@@ -299,6 +301,35 @@ final class Monitor: ObservableObject {
         bar.image = compact && !cells.isEmpty ? MenuBarImage.render(cells) : nil
     }
 
+    // MARK: Updates
+
+    private var checkingUpdate = false
+
+    /// Asks GitHub for the latest release, at most once a day and only when the setting is on.
+    private func checkForUpdate() {
+        guard settings.bool(forKey: "checkUpdates") else { updateVersion = nil; return }
+        guard !checkingUpdate, let current = Updates.currentVersion,
+              Date().timeIntervalSince1970 - settings.double(forKey: "lastUpdateCheck") >= Updates.checkEvery else { return }
+        checkingUpdate = true
+        Task { @MainActor in
+            defer { checkingUpdate = false }
+            guard let latest = await Updates.latestVersion() else { return }   // offline: try again on the next slow tick
+            settings.set(Date().timeIntervalSince1970, forKey: "lastUpdateCheck")
+            guard Calc.isNewer(latest, than: current) else { updateVersion = nil; return }
+            updateVersion = latest
+            if popupOpen { objectWillChange.send() }
+            // One notification per new version, not one per day.
+            if usageWritable, settings.string(forKey: "notifiedUpdate") != latest {
+                settings.set(latest, forKey: "notifiedUpdate")
+                Notifier.post("CoreGlance \(latest) is available",
+                              Updates.installedWithHomebrew
+                                  ? "Update with: \(Updates.brewCommand)"
+                                  : "Open CoreGlance from the menu bar to download it.",
+                              askFirst: true)
+            }
+        }
+    }
+
     // MARK: Alerts
 
     private func checkAlerts() {
@@ -360,12 +391,21 @@ enum Notifier {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
-    static func post(_ title: String, _ body: String) {
+    /// `askFirst` asks for notification permission if the user was never asked (used by the
+    /// update notice, which is on by default; alerts ask when their switch is turned on).
+    static func post(_ title: String, _ body: String, askFirst: Bool = false) {
         guard available else { return }
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
-        UNUserNotificationCenter.current().add(
-            UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+        let center = UNUserNotificationCenter.current()
+        if askFirst {
+            center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+                if granted { center.add(request) }
+            }
+        } else {
+            center.add(request)
+        }
     }
 }

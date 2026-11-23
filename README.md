@@ -3,7 +3,7 @@
 A lightweight menu bar system monitor for Mac. It shows your Mac's health at a glance, built for Apple Silicon (M1 and later) with Swift and SwiftUI.
 
 - **Light:** about 1% of one CPU core and about 20 MB of memory.
-- **Private:** no network requests, no analytics, no account. Nothing leaves your Mac.
+- **Private:** no analytics, no account. The only network request is an optional once-a-day check for a new version.
 - **Small:** about 2,200 lines of code, no third-party dependencies.
 
 <p align="center"><img src="docs/screenshot.png" width="337" alt="The CoreGlance popup showing CPU, memory, GPU, network, disk and battery"></p>
@@ -69,7 +69,14 @@ Click the gear icon at the bottom of the popup to open the settings page:
 - Temperature and fan speed on or off (the temperature can also go in the menu bar)
 - Network speed in bytes or bits
 - Alerts
+- Check for updates on or off
 - Launch at login
+
+## Updates
+
+Once a day CoreGlance asks GitHub whether a newer release exists. If there is one, the popup shows a line with a download link (or the Homebrew command), and you get one notification for that version. The app never downloads or installs anything by itself.
+
+The check is the app's only network request. It sends nothing about you or your Mac; GitHub sees your IP address, as any website does. Turn it off in Settings with **Check for updates once a day**.
 
 ## How it stays light
 
@@ -108,6 +115,7 @@ COREGLANCE_SNAPSHOT=/tmp/popup.png build/CoreGlance.app/Contents/MacOS/CoreGlanc
 | `Sources/CoreGlance/Thermals.swift` | Optional temperature and fan readings (undocumented interfaces) |
 | `Sources/CoreGlance/Usage.swift` | The internet data usage log and its file |
 | `Sources/CoreGlance/UsageView.swift` | The data usage page |
+| `Sources/CoreGlance/Updates.swift` | The once-a-day check for a new release |
 | `Sources/CoreGlance/Core.swift` | Pure calculations and formatting, covered by tests |
 | `Sources/CoreGlance/Monitor.swift` | The sampling timer, menu bar image and alerts |
 | `Sources/CoreGlance/Views.swift` | The popup interface |

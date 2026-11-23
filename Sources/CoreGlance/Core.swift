@@ -132,6 +132,32 @@ enum Calc {
         return cur - prev
     }
 
+    // MARK: Updates
+
+    /// "1.0.7" from GitHub's answer for the latest release (its tag is "v1.0.7").
+    static func releaseVersion(fromJSON data: Data) -> String? {
+        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let tag = object["tag_name"] as? String else { return nil }
+        let version = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
+        return versionParts(version) == nil ? nil : version
+    }
+
+    /// [1, 0, 7] for "1.0.7"; nil for anything that is not plain numbers and dots.
+    static func versionParts(_ version: String) -> [Int]? {
+        let parts = version.split(separator: ".", omittingEmptySubsequences: false).map { Int($0) }
+        guard !parts.isEmpty, parts.count <= 4, !parts.contains(where: { $0 == nil || $0! < 0 }) else { return nil }
+        return parts.map { $0! }
+    }
+
+    static func isNewer(_ candidate: String, than current: String) -> Bool {
+        guard let a = versionParts(candidate), let b = versionParts(current) else { return false }
+        for i in 0..<max(a.count, b.count) {
+            let x = i < a.count ? a[i] : 0, y = i < b.count ? b[i] : 0
+            if x != y { return x > y }
+        }
+        return false
+    }
+
     static func batteryHealth(fullCapacity: Int?, designCapacity: Int?) -> Int? {
         guard let f = fullCapacity, let d = designCapacity, d > 0, f > 0 else { return nil }
         return min(100, Int((Double(f) / Double(d) * 100).rounded()))

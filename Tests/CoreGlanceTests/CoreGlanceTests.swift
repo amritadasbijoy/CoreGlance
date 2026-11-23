@@ -234,6 +234,26 @@ final class SensorTests: XCTestCase {
         XCTAssertEqual(Fmt.data(2_500_000_000), "2.5 GB")
     }
 
+    // MARK: Updates
+
+    func testVersionComparison() {
+        XCTAssertTrue(Calc.isNewer("1.0.7", than: "1.0.6"))
+        XCTAssertTrue(Calc.isNewer("1.0.10", than: "1.0.9"))      // numbers, not text
+        XCTAssertTrue(Calc.isNewer("1.1", than: "1.0.9"))
+        XCTAssertFalse(Calc.isNewer("1.0.6", than: "1.0.6"))
+        XCTAssertFalse(Calc.isNewer("1.0", than: "1.0.0"))
+        XCTAssertFalse(Calc.isNewer("1.0.5", than: "1.0.6"))
+        XCTAssertFalse(Calc.isNewer("2.0.0", than: "0.0.0-dev"))  // development build: never offer
+        XCTAssertFalse(Calc.isNewer("latest", than: "1.0.6"))
+    }
+
+    func testReleaseVersionFromGitHubAnswer() {
+        XCTAssertEqual(Calc.releaseVersion(fromJSON: Data(#"{"tag_name":"v1.0.7","name":"x"}"#.utf8)), "1.0.7")
+        XCTAssertNil(Calc.releaseVersion(fromJSON: Data(#"{"message":"Not Found"}"#.utf8)))
+        XCTAssertNil(Calc.releaseVersion(fromJSON: Data(#"{"tag_name":"nightly"}"#.utf8)))
+        XCTAssertNil(Calc.releaseVersion(fromJSON: Data("not json".utf8)))
+    }
+
     // MARK: Battery power
 
     func testWatts() {

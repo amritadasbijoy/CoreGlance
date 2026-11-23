@@ -89,6 +89,7 @@ struct PopupView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 batteryCard
                 if showProcesses { processCard }
+                if let version = monitor.updateVersion { updateCard(version) }
             }
             footer.padding(.top, 4)
             AboutLine()   // developer credit, on every page
@@ -373,6 +374,33 @@ struct PopupView: View {
         }
     }
 
+    /// Shown when the daily check found a newer release. The app never installs it itself.
+    private func updateCard(_ version: String) -> some View {
+        Card {
+            HStack {
+                StatusDot(color: Theme.accent)
+                Text("Version \(version) is available").font(Theme.title)
+                Spacer()
+                if !Updates.installedWithHomebrew {
+                    Button("Download") { NSWorkspace.shared.open(Updates.releasePage) }
+                        .buttonStyle(.borderless)
+                }
+            }
+            if Updates.installedWithHomebrew {
+                HStack {
+                    Text(Updates.brewCommand)
+                        .font(.system(size: 11, design: .monospaced)).textSelection(.enabled)
+                    Spacer()
+                    Button("Copy") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(Updates.brewCommand, forType: .string)
+                    }
+                    .buttonStyle(.borderless)
+                }
+            }
+        }
+    }
+
     private var footer: some View {
         HStack {
             Button { showSettings.toggle(); showUsage = false } label: {
@@ -457,6 +485,7 @@ struct SettingsView: View {
     @AppStorage("showProcesses") private var showProcesses = true
     @AppStorage("speedBits") private var speedBits = false
     @AppStorage("alerts") private var alerts = false
+    @AppStorage("checkUpdates") private var checkUpdates = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -496,6 +525,8 @@ struct SettingsView: View {
                 Divider().opacity(0.5)
                 SwitchRow("Alerts for memory, disk and heat", isOn: $alerts)
                     .onChange(of: alerts) { _, on in if on { Notifier.requestPermission() } }
+                Divider().opacity(0.5)
+                SwitchRow("Check for updates once a day", isOn: $checkUpdates)
                 Divider().opacity(0.5)
                 SwitchRow("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, on in
