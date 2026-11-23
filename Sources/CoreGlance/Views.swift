@@ -307,6 +307,20 @@ struct PopupView: View {
                         Stat("Temperature", Fmt.temperature(t))
                     }
                 }
+                if let using = b.systemWatts {
+                    // Live power: what the Mac uses, and where it comes from or goes.
+                    HStack(spacing: 8) {
+                        Stat("Using", Fmt.watts(using))
+                        if b.onAC, let charger = b.chargerWatts {
+                            Stat("From charger", Fmt.watts(charger))
+                        }
+                        if let battery = b.batteryWatts, abs(battery) >= 0.05 {
+                            Stat(battery > 0 ? "To battery" : "From battery", Fmt.watts(abs(battery)))
+                        } else if b.onAC {
+                            Stat("Battery", "Not charging")
+                        }
+                    }
+                }
             }
         }
     }

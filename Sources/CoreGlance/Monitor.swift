@@ -66,6 +66,7 @@ final class Monitor: ObservableObject {
             if popupOpen {
                 if wantsProcesses { sampleProcesses() }
                 sampleThermals()
+                battery = Sensors.battery()   // fresh power figures the moment the popup opens
                 objectWillChange.send()
             }
         }

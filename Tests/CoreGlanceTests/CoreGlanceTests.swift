@@ -161,6 +161,18 @@ final class SensorTests: XCTestCase {
         XCTAssertFalse(Sensors.processName(me).isEmpty)
     }
 
+    // MARK: Battery power
+
+    func testWatts() {
+        XCTAssertEqual(Calc.watts(milliwatts: 11343), 11.343)
+        // A discharging battery reports a negative number stored as an unsigned one.
+        XCTAssertEqual(Calc.watts(milliwatts: Int64(bitPattern: 18446744073709542877)), -8.739)
+        XCTAssertNil(Calc.watts(milliwatts: nil))
+        XCTAssertNil(Calc.watts(milliwatts: 9_000_000))
+        XCTAssertEqual(Fmt.watts(8.739), "8.7 W")
+        XCTAssertEqual(Fmt.watts(112.4), "112 W")
+    }
+
     // MARK: Temperature and fans
 
     func testTemperatureFormatting() {

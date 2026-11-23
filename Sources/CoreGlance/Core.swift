@@ -58,6 +58,11 @@ enum Fmt {
         return unit ? "\(value) °\(fahrenheit ? "F" : "C")" : "\(value)°"
     }
 
+    /// "8.7 W", or "112 W" from 100 up.
+    static func watts(_ w: Double) -> String {
+        abs(w) >= 100 ? "\(Int(w.rounded())) W" : String(format: "%.1f W", w)
+    }
+
     static func uptime(_ s: TimeInterval) -> String {
         let d = Int(s) / 86400, h = Int(s) % 86400 / 3600, m = Int(s) % 3600 / 60
         return d > 0 ? "\(d)d \(h)h" : "\(h)h \(m)m"
@@ -100,6 +105,12 @@ enum Calc {
     static func rate(prev: UInt64, cur: UInt64, seconds: Double) -> Double {
         guard seconds > 0, cur >= prev else { return 0 }
         return Double(cur - prev) / seconds
+    }
+
+    /// Milliwatts from the battery's power report to watts; nil when missing or absurd.
+    static func watts(milliwatts: Int64?) -> Double? {
+        guard let milliwatts, abs(milliwatts) < 500_000 else { return nil }
+        return Double(milliwatts) / 1000
     }
 
     static func batteryHealth(fullCapacity: Int?, designCapacity: Int?) -> Int? {

@@ -157,6 +157,9 @@ enum Sensors {
         var minutesRemaining: Int?  // to empty, or to full while charging
         var adapterWatts: Int?
         var temperatureC: Double?
+        var systemWatts: Double?    // what the Mac is using right now
+        var chargerWatts: Double?  // what the charger is delivering right now
+        var batteryWatts: Double?   // above zero: going into the battery; below: coming out
         var health: Int? { Calc.batteryHealth(fullCapacity: fullCapacity, designCapacity: designCapacity) }
     }
 
@@ -198,6 +201,14 @@ enum Sensors {
         // Reported in hundredths of a degree Celsius.
         let temp = int("Temperature").flatMap { $0 > 0 ? Double($0) / 100 : nil }
 
+        // Live power figures. Undocumented, so every one of them is optional. Values are in
+        // milliwatts; the battery figure is a signed number stored as an unsigned one.
+        let telemetry = IORegistryEntryCreateCFProperty(service, "PowerTelemetryData" as CFString, kCFAllocatorDefault, 0)?
+            .takeRetainedValue() as? [String: Any]
+        func power(_ key: String) -> Double? {
+            Calc.watts(milliwatts: (telemetry?[key] as? NSNumber)?.int64Value)
+        }
+
         return Battery(percent: Int((Double(cur) / Double(max) * 100).rounded()),
                        isCharging: charging,
                        onAC: bool("ExternalConnected"),
@@ -207,7 +218,10 @@ enum Sensors {
                        condition: condition,
                        minutesRemaining: bool("ExternalConnected") && !charging ? nil : minutes,
                        adapterWatts: watts,
-                       temperatureC: temp)
+                       temperatureC: temp,
+                       systemWatts: power("SystemLoad"),
+                       chargerWatts: power("SystemPowerIn"),
+                       batteryWatts: power("BatteryPower"))
     }
 
     // MARK: Disk

@@ -17,7 +17,7 @@ A lightweight menu bar system monitor for Mac. It shows your Mac's health at a g
 | **GPU** | Utilization with a live graph |
 | **Network** | Download and upload speed of your internet connection, in bytes or bits |
 | **Disk** | Free and total space on the startup disk, with a low-space warning |
-| **Battery** | Charge, health (current vs design capacity), cycle count, time remaining, charger wattage |
+| **Battery** | Charge, health (current vs design capacity), cycle count, time remaining, charger wattage, and live power: watts the Mac is using, watts from the charger, and watts going into or out of the battery |
 | **Thermal** | The macOS thermal state (Cool / Warm / Hot / Critical) |
 | **Temperature and fans** | Optional, off by default: chip temperature and the speed of each fan |
 | **Top processes** | Top 6 by CPU or memory |
@@ -82,6 +82,7 @@ Click the gear icon at the bottom of the popup to open the settings page:
 ## Limits
 
 - **Temperature and fan speed are optional and off by default.** macOS has no public API for them on Apple Silicon, so CoreGlance reads them through undocumented interfaces (the HID temperature sensors and the SMC). They may be missing on some Macs or stop working after a macOS update; the official thermal state is always shown. The temperature is the hottest sensor on the chip.
+- **Live power figures are missing on some Macs.** They come from an undocumented battery report that macOS refreshes about once a minute, so they lag a little. If a Mac does not provide them, that line is hidden.
 - **Top processes lists your own processes only.** System processes such as WindowServer need administrator rights, which CoreGlance never asks for.
 - **Network speed is measured on the interface that carries your internet connection** (Wi-Fi, Ethernet, tethering or a full VPN). Other interfaces are ignored, and it reads zero when offline. Transfers to devices on the same local network use that same interface, so they are included.
 - **Not on the Mac App Store.** The App Store sandbox blocks the process list.
