@@ -19,6 +19,7 @@ A lightweight menu bar system monitor for Mac. It shows your Mac's health at a g
 | **Disk** | Free and total space on the startup disk, with a low-space warning |
 | **Battery** | Charge, health (current vs design capacity), cycle count, time remaining, charger wattage |
 | **Thermal** | The macOS thermal state (Cool / Warm / Hot / Critical) |
+| **Temperature and fans** | Optional, off by default: chip temperature and the speed of each fan |
 | **Top processes** | Top 6 by CPU or memory |
 
 The menu bar item can show any mix of CPU, RAM, GPU and network speed, either on one line or in a compact two-line layout.
@@ -65,6 +66,7 @@ Click the gear icon at the bottom of the popup to open the settings page:
 - Appearance: follow the system, or always light or dark
 - What the menu bar shows, and the compact two-line style
 - Top processes on or off
+- Temperature and fan speed on or off (the temperature can also go in the menu bar)
 - Network speed in bytes or bits
 - Alerts
 - Launch at login
@@ -79,7 +81,7 @@ Click the gear icon at the bottom of the popup to open the settings page:
 
 ## Limits
 
-- **No exact temperatures or fan speeds.** On Apple Silicon these are only available through private, undocumented APIs. CoreGlance shows the official macOS thermal state instead.
+- **Temperature and fan speed are optional and off by default.** macOS has no public API for them on Apple Silicon, so CoreGlance reads them through undocumented interfaces (the HID temperature sensors and the SMC). They may be missing on some Macs or stop working after a macOS update; the official thermal state is always shown. The temperature is the hottest sensor on the chip.
 - **Top processes lists your own processes only.** System processes such as WindowServer need administrator rights, which CoreGlance never asks for.
 - **Network speed is measured on the interface that carries your internet connection** (Wi-Fi, Ethernet, tethering or a full VPN). Other interfaces are ignored, and it reads zero when offline. Transfers to devices on the same local network use that same interface, so they are included.
 - **Not on the Mac App Store.** The App Store sandbox blocks the process list.
@@ -100,6 +102,7 @@ COREGLANCE_SNAPSHOT=/tmp/popup.png build/CoreGlance.app/Contents/MacOS/CoreGlanc
 | File | Purpose |
 |---|---|
 | `Sources/CoreGlance/Sensors.swift` | Reads the system (Mach, IOKit, sysctl) |
+| `Sources/CoreGlance/Thermals.swift` | Optional temperature and fan readings (undocumented interfaces) |
 | `Sources/CoreGlance/Core.swift` | Pure calculations and formatting, covered by tests |
 | `Sources/CoreGlance/Monitor.swift` | The sampling timer, menu bar image and alerts |
 | `Sources/CoreGlance/Views.swift` | The popup interface |

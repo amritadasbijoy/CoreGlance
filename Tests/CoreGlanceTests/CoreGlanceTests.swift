@@ -160,4 +160,32 @@ final class SensorTests: XCTestCase {
         XCTAssertTrue(Sensors.processes().contains { $0.pid == me })
         XCTAssertFalse(Sensors.processName(me).isEmpty)
     }
+
+    // MARK: Temperature and fans
+
+    func testTemperatureFormatting() {
+        XCTAssertEqual(Fmt.temperature(40.6, fahrenheit: false), "41 °C")
+        XCTAssertEqual(Fmt.temperature(100, fahrenheit: true), "212 °F")
+        XCTAssertEqual(Fmt.temperature(40.6, unit: false, fahrenheit: false), "41°")
+    }
+
+    func testChipSensorNames() {
+        XCTAssertTrue(Thermals.isChipSensor("PMU tdie3"))
+        XCTAssertTrue(Thermals.isChipSensor("pACC MTR Temp Sensor2"))
+        XCTAssertFalse(Thermals.isChipSensor("PMU tcal"))
+        XCTAssertFalse(Thermals.isChipSensor("gas gauge battery"))
+        XCTAssertFalse(Thermals.isChipSensor("NAND CH0 temp"))
+    }
+
+    func testSMCBlockHasTheDriverLayout() {
+        XCTAssertEqual(MemoryLayout<Thermals.SMCData>.size, 80)
+        XCTAssertEqual(MemoryLayout<Thermals.SMCData>.offset(of: \.dataSize), 28)
+        XCTAssertEqual(MemoryLayout<Thermals.SMCData>.offset(of: \.command), 42)
+        XCTAssertEqual(MemoryLayout<Thermals.SMCData>.offset(of: \.bytes), 48)
+    }
+
+    func testThermalReadingsAreSaneWhenPresent() {
+        if let t = Thermals.chipTemperature() { XCTAssertTrue((1..<150).contains(t)) }
+        for fan in Thermals.fans() { XCTAssertTrue(fan.rpm >= 0 && fan.rpm < 20_000) }
+    }
 }

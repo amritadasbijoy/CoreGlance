@@ -20,7 +20,8 @@ final class Monitor: ObservableObject {
     /// Default values for every setting, shared with the @AppStorage properties in the views.
     static let defaults: [String: Any] = [
         "interval": 2.0, "showCPU": true, "showRAM": true, "showGPU": false, "showNet": false,
-        "compactBar": true, "showProcesses": true, "speedBits": false, "alerts": false, "appearance": "system",
+        "showTemp": false,
+        "compactBar": true, "showProcesses": true, "showSensors": false, "speedBits": false, "alerts": false, "appearance": "system",
     ]
 
     // Not @Published on purpose: `sample()` sends one change notification per tick
@@ -38,6 +39,8 @@ final class Monitor: ObservableObject {
     private(set) var disk: (total: Int64, free: Int64)?
     private(set) var thermal: ProcessInfo.ThermalState = .nominal
     private(set) var loadAvg: [Double] = []
+    private(set) var temperature: Double?   // hottest chip sensor, °C (optional feature)
+    private(set) var fans: [Thermals.Fan] = []
 
     struct ProcRow: Identifiable {
         let id: Int32       // pid
@@ -62,6 +65,7 @@ final class Monitor: ObservableObject {
             prevProc = [:]
             if popupOpen {
                 if wantsProcesses { sampleProcesses() }
+                sampleThermals()
                 objectWillChange.send()
             }
         }
@@ -143,6 +147,7 @@ final class Monitor: ObservableObject {
 
         sampleNetwork()
         thermal = ProcessInfo.processInfo.thermalState
+        sampleThermals()
 
         if popupOpen {
             loadAvg = Sensors.loadAverage()
@@ -185,6 +190,13 @@ final class Monitor: ObservableObject {
             push(downSpeed, &downHistory)
         }
         prevNet = (n.rx, n.tx, now)
+    }
+
+    /// Exact temperature and fan speeds: read only when something is showing them.
+    private func sampleThermals() {
+        let inPopup = popupOpen && settings.bool(forKey: "showSensors")
+        if inPopup || settings.bool(forKey: "showTemp") { temperature = Thermals.chipTemperature() }
+        if inPopup { fans = Thermals.fans() }
     }
 
     private func sampleProcesses() {
@@ -234,6 +246,9 @@ final class Monitor: ObservableObject {
             cells.append(("RAM", "\(pct)%"))
         }
         if settings.bool(forKey: "showGPU") { cells.append(("GPU", gpu.map { "\(Int($0))%" } ?? "–")) }
+        if settings.bool(forKey: "showTemp") {
+            cells.append(("TEMP", temperature.map { Fmt.temperature($0, unit: false) } ?? "–"))
+        }
         if settings.bool(forKey: "showNet") {
             cells.append(("↓" + Fmt.shortSpeed(downSpeed, bits: bits), "↑" + Fmt.shortSpeed(upSpeed, bits: bits)))
         }

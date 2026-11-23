@@ -42,6 +42,7 @@ struct PopupView: View {
     @ObservedObject var monitor: Monitor
     @AppStorage("showSettings") private var showSettings = false
     @AppStorage("showProcesses") private var showProcesses = true
+    @AppStorage("showSensors") private var showSensors = false
     @AppStorage("procSortByMemory") private var procSortByMemory = false
     @AppStorage("speedBits") private var speedBits = false
     @AppStorage("appearance") private var appearance = "system"
@@ -65,6 +66,7 @@ struct PopupView: View {
                 cpuCard
                 memoryCard
                 gpuCard
+                if showSensors { sensorsCard }
                 HStack(spacing: 8) {
                     networkCard
                     diskCard
@@ -255,6 +257,30 @@ struct PopupView: View {
         }
     }
 
+    // Optional: exact chip temperature and fan speeds.
+    private var sensorsCard: some View {
+        Card {
+            HStack {
+                Text("Temperature").font(Theme.title)
+                Spacer()
+                Text(monitor.temperature.map { Fmt.temperature($0) } ?? "Not available")
+                    .font(Theme.value).foregroundStyle(monitor.temperature == nil ? .secondary : .primary)
+            }
+            if monitor.fans.isEmpty {
+                Text("No fan speed reported").font(Theme.label).foregroundStyle(.secondary)
+            } else {
+                HStack(spacing: 16) {
+                    ForEach(Array(monitor.fans.enumerated()), id: \.offset) { index, fan in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Stat(monitor.fans.count == 1 ? "Fan" : "Fan \(index + 1)", "\(Int(fan.rpm)) rpm")
+                            if fan.max > 0 { Meter(fraction: fan.rpm / fan.max, color: Theme.fill) }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     @ViewBuilder private var batteryCard: some View {
         if let b = monitor.battery {
             let alert: Color? = b.isCharging || b.onAC ? nil : (b.percent <= 10 ? Theme.critical : b.percent <= 20 ? Theme.warning : nil)
@@ -278,7 +304,7 @@ struct PopupView: View {
                     if b.onAC, let w = b.adapterWatts {
                         Stat("Charger", "\(w) W")
                     } else if let t = b.temperatureC {
-                        Stat("Temperature", String(format: "%.0f °C", t))
+                        Stat("Temperature", Fmt.temperature(t))
                     }
                 }
             }
@@ -390,6 +416,8 @@ struct SettingsView: View {
     @AppStorage("showRAM") private var showRAM = true
     @AppStorage("showGPU") private var showGPU = false
     @AppStorage("showNet") private var showNet = false
+    @AppStorage("showTemp") private var showTemp = false
+    @AppStorage("showSensors") private var showSensors = false
     @AppStorage("compactBar") private var compactBar = true
     @AppStorage("launchAtLogin") private var launchAtLogin = false
     @AppStorage("showProcesses") private var showProcesses = true
@@ -415,9 +443,10 @@ struct SettingsView: View {
             Card {
                 HStack(spacing: 4) {
                     Chip("CPU", isOn: $showCPU)
-                    Chip("Memory", isOn: $showRAM)
+                    Chip("RAM", isOn: $showRAM)
                     Chip("GPU", isOn: $showGPU)
-                    Chip("Network", isOn: $showNet)
+                    Chip("Net", isOn: $showNet)
+                    Chip("Temp", isOn: $showTemp)
                 }
                 Divider().opacity(0.5)
                 SwitchRow("Compact two-line layout", isOn: $compactBar)
@@ -426,6 +455,8 @@ struct SettingsView: View {
             SectionLabel("Options")
             Card {
                 SwitchRow("Top processes", isOn: $showProcesses)
+                Divider().opacity(0.5)
+                SwitchRow("Temperature and fan speed", isOn: $showSensors)
                 Divider().opacity(0.5)
                 SwitchRow("Network speed in bits", isOn: $speedBits)
                 Divider().opacity(0.5)

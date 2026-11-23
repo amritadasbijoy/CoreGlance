@@ -46,6 +46,18 @@ enum Fmt {
         }
     }
 
+    /// The unit picked in System Settings > General > Language & Region > Temperature.
+    static var prefersFahrenheit: Bool {
+        if let unit = UserDefaults.standard.string(forKey: "AppleTemperatureUnit") { return unit == "Fahrenheit" }
+        return Locale.current.measurementSystem == .us
+    }
+
+    /// "41 °C", or "41°" for the menu bar.
+    static func temperature(_ celsius: Double, unit: Bool = true, fahrenheit: Bool = prefersFahrenheit) -> String {
+        let value = Int((fahrenheit ? celsius * 9 / 5 + 32 : celsius).rounded())
+        return unit ? "\(value) °\(fahrenheit ? "F" : "C")" : "\(value)°"
+    }
+
     static func uptime(_ s: TimeInterval) -> String {
         let d = Int(s) / 86400, h = Int(s) % 86400 / 3600, m = Int(s) % 3600 / 60
         return d > 0 ? "\(d)d \(h)h" : "\(h)h \(m)m"
