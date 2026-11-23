@@ -8,7 +8,7 @@
 set -e
 cd "$(dirname "$0")"
 
-VERSION="${VERSION:-1.0.5}"
+VERSION="${VERSION:-1.0.6}"
 BUNDLE_ID="${BUNDLE_ID:-io.github.amritadasbijoy.coreglance}"
 
 swift build -c release
