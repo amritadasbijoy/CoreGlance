@@ -20,6 +20,11 @@ enum Fmt {
         ByteCountFormatter.string(fromByteCount: b, countStyle: .file)
     }
 
+    /// Internet data used, in the decimal units providers bill in (1 GB = 1000 MB).
+    static func data(_ b: UInt64) -> String {
+        ByteCountFormatter.string(fromByteCount: Int64(clamping: b), countStyle: .file)
+    }
+
     /// Full speed text for the popup. `bytesPerSec` is always bytes; `bits` picks the display unit.
     static func speed(_ bytesPerSec: Double, bits: Bool) -> String {
         if bits {
@@ -61,6 +66,13 @@ enum Fmt {
     /// "8.7 W", or "112 W" from 100 up.
     static func watts(_ w: Double) -> String {
         abs(w) >= 100 ? "\(Int(w.rounded())) W" : String(format: "%.1f W", w)
+    }
+
+    /// "Nov 2026" for 202611.
+    static func month(_ yearMonth: Int) -> String {
+        let names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+        let m = yearMonth % 100
+        return (1...12).contains(m) ? "\(names[m - 1]) \(yearMonth / 100)" : "\(yearMonth)"
     }
 
     static func uptime(_ s: TimeInterval) -> String {
@@ -111,6 +123,13 @@ enum Calc {
     static func watts(milliwatts: Int64?) -> Double? {
         guard let milliwatts, abs(milliwatts) < 500_000 else { return nil }
         return Double(milliwatts) / 1000
+    }
+
+    /// Bytes moved between two readings of a counter. Zero when the counter went backwards
+    /// (it restarts after a reboot or a reconnect) or the jump is too large to be real.
+    static func transferred(prev: UInt64, cur: UInt64, limit: UInt64 = 1 << 40) -> UInt64 {
+        guard cur >= prev, cur - prev <= limit else { return 0 }
+        return cur - prev
     }
 
     static func batteryHealth(fullCapacity: Int?, designCapacity: Int?) -> Int? {

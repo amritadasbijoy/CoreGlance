@@ -41,6 +41,7 @@ enum Theme {
 struct PopupView: View {
     @ObservedObject var monitor: Monitor
     @AppStorage("showSettings") private var showSettings = false
+    @AppStorage("showUsage") private var showUsage = false
     @AppStorage("showProcesses") private var showProcesses = true
     @AppStorage("showSensors") private var showSensors = false
     @AppStorage("procSortByMemory") private var procSortByMemory = false
@@ -61,6 +62,17 @@ struct PopupView: View {
                 }
                 .padding(.bottom, 4)
                 SettingsView()
+            } else if showUsage {
+                HStack {
+                    Button { showUsage = false } label: { Label("Back", systemImage: "chevron.left") }
+                        .buttonStyle(.borderless)
+                    Spacer()
+                    Text("Internet usage").font(Theme.title)
+                    Spacer()
+                    Label("Back", systemImage: "chevron.left").hidden()   // keeps the title centred
+                }
+                .padding(.bottom, 4)
+                UsageView(monitor: monitor)
             } else {
                 header.padding(.bottom, 4)
                 cpuCard
@@ -68,7 +80,10 @@ struct PopupView: View {
                 gpuCard
                 if showSensors { sensorsCard }
                 HStack(spacing: 8) {
-                    networkCard
+                    // The Network card opens the internet usage page.
+                    Button { showUsage = true } label: { networkCard }
+                        .buttonStyle(.plain)
+                        .help("Show how much data you have used")
                     diskCard
                 }
                 .fixedSize(horizontal: false, vertical: true)
@@ -217,8 +232,7 @@ struct PopupView: View {
                 Spacer()
                 Text(monitor.netInterface == nil ? "Offline" : "Internet")
                     .font(Theme.label).foregroundStyle(.secondary)
-                    .help(monitor.netInterface.map { "Measured on \($0), the interface that carries your internet connection" }
-                          ?? "No internet connection")
+                Image(systemName: "chevron.right").font(.system(size: 9, weight: .semibold)).foregroundStyle(.tertiary)
             }
             HStack(spacing: 4) {
                 Image(systemName: "arrow.down").font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
@@ -361,7 +375,7 @@ struct PopupView: View {
 
     private var footer: some View {
         HStack {
-            Button { showSettings.toggle() } label: {
+            Button { showSettings.toggle(); showUsage = false } label: {
                 Image(systemName: showSettings ? "gearshape.fill" : "gearshape")
             }
             .buttonStyle(.borderless)

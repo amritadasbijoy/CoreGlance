@@ -161,6 +161,79 @@ final class SensorTests: XCTestCase {
         XCTAssertFalse(Sensors.processName(me).isEmpty)
     }
 
+    // MARK: Internet usage
+
+    private var utc: Calendar {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "UTC")!
+        c.firstWeekday = 2   // Monday
+        return c
+    }
+    private func date(_ y: Int, _ m: Int, _ d: Int, _ h: Int = 12) -> Date {
+        utc.date(from: DateComponents(year: y, month: m, day: d, hour: h))!
+    }
+
+    func testTransferred() {
+        XCTAssertEqual(Calc.transferred(prev: 100, cur: 350), 250)
+        XCTAssertEqual(Calc.transferred(prev: 350, cur: 100), 0)          // counter restarted
+        XCTAssertEqual(Calc.transferred(prev: 0, cur: 1 << 50), 0)        // too large to be real
+    }
+
+    func testUsageTotals() {
+        var log = UsageLog()
+        let now = date(2026, 11, 25)                                      // a Wednesday
+        log.add(down: 100, up: 10, at: now, calendar: utc)
+        log.add(down: 50, up: 5, at: now, calendar: utc)                  // same hour, same day
+        log.add(down: 1000, up: 0, at: date(2026, 11, 23), calendar: utc) // Monday, same week
+        log.add(down: 7, up: 0, at: date(2026, 11, 22), calendar: utc)    // Sunday, the week before
+        log.add(down: 3, up: 0, at: date(2026, 10, 30), calendar: utc)    // last month
+        log.add(down: 9, up: 0, at: date(2025, 12, 31), calendar: utc)    // last year
+
+        XCTAssertEqual(log.today(now: now, calendar: utc), .init(down: 150, up: 15))
+        XCTAssertEqual(log.thisWeek(now: now, calendar: utc).down, 1150)
+        XCTAssertEqual(log.thisMonth(now: now, calendar: utc).down, 1157)
+        XCTAssertEqual(log.thisYear(now: now, calendar: utc).down, 1160)
+        XCTAssertEqual(log.months().map(\.yearMonth), [202611, 202610, 202512])
+        XCTAssertEqual(log.months().first?.amount.down, 1157)
+    }
+
+    func testUsageSeries() {
+        var log = UsageLog()
+        let now = date(2026, 11, 25, 12)
+        log.add(down: 5, up: 0, at: now, calendar: utc)
+        log.add(down: 7, up: 0, at: date(2026, 11, 25, 9), calendar: utc)
+        log.add(down: 11, up: 0, at: date(2026, 11, 20), calendar: utc)
+
+        let hours = log.lastHours(24, now: now)
+        XCTAssertEqual(hours.count, 24)
+        XCTAssertEqual(hours[23].down, 5)
+        XCTAssertEqual(hours[20].down, 7)
+        let days = log.lastDays(30, now: now, calendar: utc)
+        XCTAssertEqual(days.count, 30)
+        XCTAssertEqual(days[29].down, 12)
+        XCTAssertEqual(days[24].down, 11)
+    }
+
+    func testUsagePruneAndRoundTrip() throws {
+        var log = UsageLog()
+        let now = date(2026, 11, 25)
+        log.add(down: 1, up: 1, at: now, calendar: utc)
+        log.add(down: 2, up: 2, at: date(2026, 11, 20), calendar: utc)    // older than 48 hours
+        log.add(down: 3, up: 3, at: date(2025, 1, 1), calendar: utc)      // older than 400 days
+        log.prune(now: now, calendar: utc)
+
+        XCTAssertEqual(log.hours.count, 1)
+        XCTAssertEqual(Set(log.days.keys), [20261125, 20261120])
+        let copy = try JSONDecoder().decode(UsageLog.self, from: JSONEncoder().encode(log))
+        XCTAssertEqual(copy.days, log.days)
+        XCTAssertEqual(copy.hours, log.hours)
+    }
+
+    func testUsageFormatting() {
+        XCTAssertEqual(Fmt.month(202611), "Nov 2026")
+        XCTAssertEqual(Fmt.data(2_500_000_000), "2.5 GB")
+    }
+
     // MARK: Battery power
 
     func testWatts() {

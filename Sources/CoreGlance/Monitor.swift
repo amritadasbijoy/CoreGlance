@@ -41,6 +41,8 @@ final class Monitor: ObservableObject {
     private(set) var loadAvg: [Double] = []
     private(set) var temperature: Double?   // hottest chip sensor, °C (optional feature)
     private(set) var fans: [Thermals.Fan] = []
+    private(set) var usage = UsageLog()     // internet data used, per hour and per day
+    var confirmingUsageReset = false { didSet { objectWillChange.send() } }
 
     struct ProcRow: Identifiable {
         let id: Int32       // pid
@@ -63,6 +65,7 @@ final class Monitor: ObservableObject {
         didSet {
             guard popupOpen != oldValue else { return }
             prevProc = [:]
+            if !popupOpen { confirmingUsageReset = false }
             if popupOpen {
                 if wantsProcesses { sampleProcesses() }
                 sampleThermals()
@@ -88,9 +91,20 @@ final class Monitor: ObservableObject {
     private var timer: Timer?
     private var interval: Double = 0
     private var settingsObserver: NSObjectProtocol?
+    private var quitObserver: NSObjectProtocol?
+    private var usageDirty = false
+    private var lastUsageSave = Date()
+    /// Snapshot runs are a second copy of the app; they must not write over the real log.
+    private let usageWritable = ProcessInfo.processInfo.environment["COREGLANCE_SNAPSHOT"] == nil
 
     init() {
         settings.register(defaults: Self.defaults)
+        usage = UsageStore.load()
+        quitObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.saveUsage(force: true) }
+        }
         applySettings()
         // Any settings change (refresh interval, menu bar options, ...) takes effect at once.
         settingsObserver = NotificationCenter.default.addObserver(
@@ -189,8 +203,30 @@ final class Monitor: ObservableObject {
             downSpeed = Calc.rate(prev: p.rx, cur: n.rx, seconds: dt)
             upSpeed = Calc.rate(prev: p.tx, cur: n.tx, seconds: dt)
             push(downSpeed, &downHistory)
+            let down = Calc.transferred(prev: p.rx, cur: n.rx), up = Calc.transferred(prev: p.tx, cur: n.tx)
+            if down > 0 || up > 0 {
+                usage.add(down: down, up: up, at: now)
+                usageDirty = true
+            }
         }
         prevNet = (n.rx, n.tx, now)
+        saveUsage()
+    }
+
+    /// Writes the usage log at most once a minute, and only when it changed.
+    private func saveUsage(force: Bool = false) {
+        guard usageWritable, usageDirty, force || Date().timeIntervalSince(lastUsageSave) >= 60 else { return }
+        usage.prune()
+        UsageStore.save(usage)
+        usageDirty = false
+        lastUsageSave = Date()
+    }
+
+    func resetUsage() {
+        usage = UsageLog()
+        usageDirty = true
+        confirmingUsageReset = false
+        saveUsage(force: true)
     }
 
     /// Exact temperature and fan speeds: read only when something is showing them.
